@@ -57,7 +57,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #58a6ff;outline-offse
 .toast.on{opacity:1;transform:translate(-50%,-70%)}
 @media (max-width:560px){.focus{top:auto;bottom:calc(64px + env(safe-area-inset-bottom,0px))}}
 </style>
-<div class="hint" id="hint">Drag to rotate · scroll to zoom · double-click to fly in · keys 1–5 fly to spots · F tour · 0 reset · V space/city · G goals</div>
+<div class="hint" id="hint">Drag to rotate · scroll to zoom · double-click to fly in · keys 1–5 fly to spots · F tour · 0 reset · V space/city · M music · G goals</div>
 <button class="lockbtn" id="lockBtn">🔒 Goals</button>
 <nav class="ctl" id="ctl" aria-label="Camera controls">
   <button type="button" data-a="zout" title="Zoom out">−</button><button type="button" data-a="zin" title="Zoom in">+</button>
@@ -66,6 +66,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #58a6ff;outline-offse
   <button type="button" data-a="1">Desk</button><button type="button" data-a="2">Buddha</button><button type="button" data-a="3">Mindset</button><button type="button" data-a="5">Window</button><button type="button" data-a="0">Room</button>
   <span class="sep"></span>
   <button type="button" data-a="tour" id="tourBtn">▶ Tour</button>
+  <button type="button" data-a="music" id="musicBtn">♪ Music</button>
 </nav>
 <button class="lockbtn" id="viewBtn" style="top:calc(84px + env(safe-area-inset-top,0px))">🌆 City view</button>
 
@@ -533,13 +534,32 @@ const tourBtn=document.getElementById('tourBtn');const syncTour=()=>{tourBtn.tex
 document.getElementById('ctl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.a;act();
  if(a==='zin')zoomT=Math.min(4.5,zoomT*1.3);else if(a==='zout'){zoomT=Math.max(.8,zoomT/1.3);if(zoomT<1.05)lookT.set(0,2.6,-1.5)}
  else if(a==='rl')tyaw=Math.max(.15,tyaw-.3);else if(a==='rr')tyaw=Math.min(1.4,tyaw+.3);
- else if(a==='tour'){toggleTour();syncTour();return}else{stopTour();flyTo(a)}syncTour()});
+ else if(a==='tour'){toggleTour();syncTour();return}else if(a==='music'){setMusic(!musicOn);return}else{stopTour();flyTo(a)}syncTour()});
 // start a slow tour on its own after 1 minute without input (keeps the wallpaper alive)
 setInterval(()=>{if(!tour&&$m.hidden&&performance.now()-lastAct>60000){toggleTour();syncTour()}},5000);
 addEventListener('pointerdown',()=>setTimeout(syncTour,0));
 document.getElementById('viewBtn').onclick=()=>setView(VIEW==='space'?'city':'space');
 addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key==='v'||e.key==='V')setView(VIEW==='space'?'city':'space')});
 setView(VIEW);
+
+// background music: calm generated pads + a sparse pentatonic melody (Web Audio, no files). Off until clicked — browsers block autoplay
+const CHORDS=[[48,55,64,71],[45,52,60,67],[41,48,57,64],[43,50,59,65]],MEL=[72,74,76,79,81,84];  // Cmaj7 Am7 Fmaj7 G7
+let AC=null,master,mOut,musicOn=false,musicT=null,nextBar=0,chordI=0;
+const hz=n=>440*Math.pow(2,(n-69)/12);
+function note(n,t,len,vol,type){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=hz(n);
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+(type==='sine'?.03:len*.4));g.gain.exponentialRampToValueAtTime(.0001,t+len);
+ o.connect(g).connect(mOut);o.start(t);o.stop(t+len+.1)}
+function sched(){while(nextBar<AC.currentTime+2){const t=nextBar;CHORDS[chordI++%4].forEach(n=>note(n,t,9,.05,'triangle'));
+ for(let b=0;b<8;b++)if(Math.random()<.35)note(MEL[Math.floor(Math.random()*MEL.length)],t+b+.5,2.5,.07,'sine');nextBar+=8}}
+function setMusic(on){musicOn=on;
+ if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=0;
+  mOut=AC.createBiquadFilter();mOut.type='lowpass';mOut.frequency.value=1800;
+  const dl=AC.createDelay(),fb=AC.createGain(),wet=AC.createGain();dl.delayTime.value=.45;fb.gain.value=.35;wet.gain.value=.3;
+  mOut.connect(master);mOut.connect(dl);dl.connect(fb).connect(dl);dl.connect(wet).connect(master);master.connect(AC.destination)}
+ clearInterval(musicT);if(on){AC.resume();nextBar=AC.currentTime+.1;sched();musicT=setInterval(sched,500)}
+ master.gain.setTargetAtTime(on?.5:0,AC.currentTime,1.2);
+ const b=document.getElementById('musicBtn');b.textContent=on?'■ Music':'♪ Music';b.classList.toggle('on',on)}
+addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key==='m'||e.key==='M')setMusic(!musicOn)});
 setTimeout(()=>{const h=document.getElementById('hint');if(h){h.style.transition='opacity 1s';h.style.opacity=0}},14000);
 })();
 </script>
