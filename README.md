@@ -2,6 +2,8 @@
 
 An interactive 3D isometric developer room you can use as a live wallpaper. It's a single `index.html` built with [Three.js](https://threejs.org/), and there's no build step.
 
+https://github.com/user-attachments/assets/b4fac8a3-2bc2-4cb7-9bea-78957291a4bc
+
 ## Features
 
 - **3D isometric room**: drag to rotate, scroll to zoom, double-click to fly in
